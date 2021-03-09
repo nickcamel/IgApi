@@ -39,6 +39,7 @@ class IgApi:
         self.url = BaseUrl()
         self.account = account
         self._auth_handshake = self.__connect()
+        self.stream = None
 
     def markets_prices_epic(self, epic):
         """
@@ -196,6 +197,37 @@ class IgApi:
 
         return rsp
 
+    def stream_subscribe(self, epic):
+        """
+        WIP
+        :param epic:
+        :return:
+        """
+        control_url = "https://{}/lightstreamer/control.txt".format(self._auth_handshake['stream']['control_domain'])
+
+        query = {}
+        query["LS_session"] = self._auth_handshake['stream']['session']
+        query["LS_op"] = "add"
+        query["LS_table"] = "1"
+        query["LS_id"] = f"MARKET:{epic}"  # "MARKET:IX.D.OMX.IFD.IP"
+        query["LS_schema"] = "UPDATE_TIME BID OFFER"
+        query["LS_mode"] = "MERGE"
+
+        '''
+        query = {}
+        query["LS_session"] = self._auth_handshake['stream']['session']
+        query["LS_op"] = "add"
+        query["LS_table"] = "1"
+        query["LS_id"] = f"CHART:{epic}:TICK"
+        query["LS_schema"] = "UTM BID OFR"
+        query["LS_mode"] = "DISTINCT"
+        '''
+
+        control_response = requests.request("POST", control_url, data=query)
+        if control_response.status_code != 200:
+            print("error", control_response.status_code, control_url, control_response.text)
+            sys.exit(0)
+
     def __validate_stream_rsp(self, rsp):
         """
         Validate stream response and save stream session variables.
@@ -230,6 +262,7 @@ class IgApi:
         self._auth_handshake['stream'] = dict()
         self._auth_handshake['stream']['session'] = streaming_session
         self._auth_handshake['stream']['control_domain'] = control_domain
+        self.stream = streaming_iterator
 
     def log_out(self):
         """
