@@ -27,14 +27,31 @@ if __name__ == "__main__":
     # WIP: Need to add configurabiliy of subscription here.. 
     api.stream_subscribe(epic)
 
-    # Print subscription
+    # Print streamed data
+    due_key = False
     try:
-        for line in api.stream:
-            if keyboard.is_pressed('q'):
-                # Not optimal, but spam 'q' until detected
+        while True:
+            try:
+                api.stream_subscribe(epic)
+            except StopIteration:
+                print("Error: Stream pipe lost. Consider reconnecting")
+                due_key = True
                 break
-            if "preamble" not in line.lower() and 'probe' not in line.lower():
-                print("line", line)
+
+            for line in api.stream:
+                if keyboard.is_pressed('q'):
+                    # Not optimal, but spam 'q' until detected
+                    print("Quit")
+                    due_key = True
+                    break
+
+                if "preamble" not in line.lower() and 'probe' not in line.lower():
+                    import datetime
+                    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"{now}--> line: {line}")
+
+            if due_key:
+                break
 
     except Exception as e:
         # Don't kill the session, let's log out gracefully if possible

@@ -140,8 +140,7 @@ class IgApi:
         """
         print("\n--- Connecting ---")
         if self.connected_rest_api:
-            print("Warning: rest api seems connected already. Log out first")
-            return
+            print("Warning: rest api seems connected already. Reconnecting...")
 
         # Get url to connection endpoint
 
@@ -167,8 +166,7 @@ class IgApi:
             return None
 
         if self.connected_streaming_api:
-            print("Warning: Streaming API seems connected already. Warranty void")
-            return None
+            print("Warning: Streaming API seems connected already. Reconnecting...")
 
         # We've validated these two keys exists, no need to try-except
         account_id = self._auth_handshake['json']['currentAccountId']
