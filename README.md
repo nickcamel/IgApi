@@ -30,7 +30,7 @@ Added features
 - REST-API logout
 - A couple of "watchlist" commands
 - Price for epic market
-- Streaming API connecting (subsciption to streaming not implemented yet)
+- Streaming API connecting (subsciption to streaming in early stage)
 
 Notes: 
 
