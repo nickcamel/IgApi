@@ -11,6 +11,7 @@ from base_url import BaseUrl
 from login import Login
 from prices import Prices
 from watchlists import Watchlists
+from positions import Positions
 
 
 class IgApi:
@@ -226,6 +227,71 @@ class IgApi:
             print("error", control_response.status_code, control_url, control_response.text)
             sys.exit(0)
 
+    def positions(self, model, deal_id=''):
+        if model == 'get' and not deal_id:
+            print("Get all open deals")
+            rsp = self.__request(Positions.epic, method='GET')
+
+            rsp_json = rsp.json()
+            #pprint(rsp_json)
+
+            return rsp_json
+        elif model == 'get' and deal_id:
+            print(f"Get open deal for {deal_id}")
+            rsp = self.__request(Positions.epic, method='GET', url_append=deal_id)
+            rsp_json = rsp.json()
+            pprint(rsp_json)
+
+            return rsp_json
+
+        elif model == 'delete' and deal_id:
+            print(f"Close deal for {deal_id}")
+            body = dict()
+            body["dealId"] = deal_id
+            body["direction"] = 'BUY'
+            body["epic"] = None
+            body["expiry"] = None
+            body["level"] = None
+            body["orderType"] = 'MARKET'
+            body['quoteId'] = None
+            body["size"] = 1
+            body['timeInForce'] = 'EXECUTE_AND_ELIMINATE'
+            print(body)
+            rsp = self.__request(Positions.epic, method='DELETE', url_append='otc', body=body)
+            rsp_json = rsp.json()
+            pprint(rsp_json)
+
+        else:
+            print(f"Error: model not supported: {model}")
+
+    def position_open(self, direction=''):
+        print(f"Open position")
+        ref = 'ethusdtesting'
+        body = dict()
+        body["dealReference"] = ref
+        body["currencyCode"] = 'USD'
+        body["direction"] = direction
+        body["epic"] = 'CS.D.ETHUSD.CFD.IP'
+        body["expiry"] = '-'
+        body["forceOpen"] = True
+        body["guaranteedStop"] = False
+        body["level"] = None
+        body["limitDistance"] = 40
+        body["limitLevel"] = None
+        body["orderType"] = 'MARKET'
+        body["size"] = 3
+        body["stopDistance"] = 40
+        body["stopLevel"] = None
+        body["trailingStop"] = None
+        body["trailingStopIncrement"] = None
+        body["timeInForce"] = 'EXECUTE_AND_ELIMINATE'
+
+        rsp = self.__request(Positions.epic, method='POST', url_append='otc', body=body)
+        rsp_json = rsp.json()
+        pprint(rsp_json)
+
+        return ref
+
     def __validate_stream_rsp(self, rsp):
         """
         Validate stream response and save stream session variables.
@@ -377,6 +443,15 @@ class IgApi:
         pkg = base[method]
         url = self.__get_rest_url(base['path'] + url_append)
         headers = self.__get_headers(version=pkg['version'], tokens=pkg['tokens'])
+
+        #print("sending")
+        #print(url)
+        #print(headers)
+        #print(body)
+        if method == 'DELETE':
+            print("CHANGING HEADERS")
+            method = 'POST'
+            headers['_method'] = 'DELETE'
 
         rsp = requests.request(method, url, headers=headers, json=body)
 
