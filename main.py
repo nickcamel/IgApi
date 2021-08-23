@@ -37,29 +37,35 @@ if __name__ == "__main__":
     input("OPENED.. CHECK IT")
     rsp = api.positions('get')
     deal_id = []
+    direction = []
     for deals in rsp['positions']:
         print(deals)
         deal_id.append(deals['position']['dealId'])
+        direction.append(deals['position']['direction'])
 
     print(deal_id)
     input("waiting")
-    while True:
+    for k, deal in enumerate(deal_id):
+        rsp = api.positions('get', deal)
+        input(rsp)
+        position = {}
+        position['bid'] = rsp['market']['bid']
+        position['offer'] = rsp['market']['offer']
+        position['direction'] = rsp['position']['direction']
+        position['price'] = rsp['position']['level']
+        position['limit'] = rsp['position']['limitLevel']
+        position['stop'] = rsp['position']['stopLevel']
 
-        for deal in deal_id:
-            rsp = api.positions('get', deal)
-            input(rsp)
-            position = {}
-            position['bid'] = rsp['market']['bid']
-            position['offer'] = rsp['market']['offer']
-            position['direction'] = rsp['position']['direction']
-            position['price'] = rsp['position']['level']
-            position['limit'] = rsp['position']['limitLevel']
-            position['stop'] = rsp['position']['stopLevel']
+        from pprint import pprint
+        #pprint(position)
 
-            from pprint import pprint
-            #pprint(position)
-            api.positions('delete', deal)
-        time.sleep(5)
+        if direction[k] == 'BUY':
+            dir_close = 'SELL'
+        elif direction[k] == 'SELL':
+            dir_close = 'BUY'
+
+        api.position_close(deal, dir_close)
+
 
 
     """
