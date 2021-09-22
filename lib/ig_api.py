@@ -225,7 +225,7 @@ class IgApi:
         control_response = requests.request("POST", control_url, data=query)
         if control_response.status_code != 200:
             print("error", control_response.status_code, control_url, control_response.text)
-            sys.exit(0)
+            sys.exit(1)
 
     def positions(self, model, deal_id=''):
         if model == 'get' and not deal_id:
@@ -247,7 +247,7 @@ class IgApi:
         else:
             print(f"Error: model not supported: {model}")
 
-    def position_close(self, deal_id, direction):
+    def position_close(self, deal_id, direction, size_trade=1):
         print(f"Close deal for {deal_id}")
         body = dict()
         body["dealId"] = deal_id
@@ -257,36 +257,45 @@ class IgApi:
         body["level"] = None
         body["orderType"] = 'MARKET'
         body['quoteId'] = None
-        body["size"] = 3
+        body["size"] = size_trade
         body['timeInForce'] = 'EXECUTE_AND_ELIMINATE'
         print(body)
         rsp = self.__request(Positions.trade, method='DELETE', body=body)
         rsp_json = rsp.json()
         pprint(rsp_json)
 
-    def position_open(self, direction=''):
+        return rsp_json["dealReference"]
+
+    def position_open(self, direction='', market='CS.D.ETHUSD.CFD.IP', size_trade=1, stop=40, limit=40):
         print(f"Open position")
-        ref = 'ethusdtestmore'
+        print(direction, market, size_trade, stop, limit)
+        ref = direction
+        if market == 'CS.D.ETHUSD.CFD.IP':
+            currency = 'USD'
+        else:
+            currency = 'SEK'
+
         body = dict()
         body["dealReference"] = ref
-        body["currencyCode"] = 'USD'
+        body["currencyCode"] = currency
         body["direction"] = direction
-        body["epic"] = 'CS.D.ETHUSD.CFD.IP'
+        body["epic"] = market
         body["expiry"] = '-'
         body["forceOpen"] = True
         body["guaranteedStop"] = False
         body["level"] = None
-        body["limitDistance"] = 40
+        body["limitDistance"] = limit
         body["limitLevel"] = None
         body["orderType"] = 'MARKET'
-        body["size"] = 3
-        body["stopDistance"] = 40
+        body["size"] = size_trade
+        body["stopDistance"] = stop
         body["stopLevel"] = None
         body["trailingStop"] = None
         body["trailingStopIncrement"] = None
         body["timeInForce"] = 'EXECUTE_AND_ELIMINATE'
 
         rsp = self.__request(Positions.trade, method='POST', body=body)
+        print(rsp)
         rsp_json = rsp.json()
         pprint(rsp_json)
 
@@ -450,6 +459,9 @@ class IgApi:
             method = 'POST'
             headers['_method'] = 'DELETE'
 
+        print(method)
+        print(url)
+        print(headers)
         rsp = requests.request(method, url, headers=headers, json=body)
 
         if 'code' in pkg:
@@ -466,7 +478,7 @@ class IgApi:
     @staticmethod
     def __request_stream(method="", url="", data={}, code=-1):
 
-        rsp = requests.request(method, url, data=data, stream=True)
+        rsp = requests.request(method, url, data=data, stream=True, timeout=15)
 
         if rsp.status_code != code:
             print(f"Error: request failed with code: {rsp.status_code}:{rsp.text}")

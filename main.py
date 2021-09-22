@@ -33,9 +33,23 @@ if __name__ == "__main__":
 
     import time
 
-    api.position_open('SELL')
+    ref = api.position_open('BUY')
+
+    deal_id = ""
+    while not deal_id:
+        rsp = api.positions('get')
+        if rsp and 'positions' in rsp and len(rsp['positions']) > 0:
+            for deals in rsp['positions']:
+                if rsp and deals['position']['dealReference'] == ref:
+                    deal_id = deals['position']['dealId']
+                else:
+                    print("Not opened yet")
+                    time.sleep(1)
+        else:
+            print("No deals found")
+            time.sleep(1)
+
     input("OPENED.. CHECK IT")
-    rsp = api.positions('get')
     deal_id = []
     direction = []
     for deals in rsp['positions']:
