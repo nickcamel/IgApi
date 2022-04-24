@@ -295,7 +295,7 @@ class IgApi:
         body["timeInForce"] = 'EXECUTE_AND_ELIMINATE'
 
         rsp = self.__request(Positions.trade, method='POST', body=body)
-        print(rsp)
+        #print(rsp)
         rsp_json = rsp.json()
         pprint(rsp_json)
 
@@ -455,13 +455,13 @@ class IgApi:
 
         if base and base == Positions.trade and method == 'DELETE':
             # https://labs.ig.com/node/36
-            print("CHANGING HEADERS")
+            # print("CHANGING HEADERS")
             method = 'POST'
             headers['_method'] = 'DELETE'
 
-        print(method)
-        print(url)
-        print(headers)
+        # print(method)
+        # print(url)
+        # print(headers)
         rsp = requests.request(method, url, headers=headers, json=body)
 
         if 'code' in pkg:
