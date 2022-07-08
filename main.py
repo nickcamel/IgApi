@@ -32,7 +32,7 @@ if __name__ == "__main__":
     #api.stream_subscribe(epic)
 
     import time
-
+    input("----> Continue to open position? <----")
     ref = api.position_open('BUY')
 
     deal_id = ""

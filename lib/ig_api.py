@@ -54,7 +54,19 @@ class IgApi:
         print("--- Get prices ---")
         print(f"Get prices for\t\t\t{epic}")
 
-        rsp = self.__request(Prices.epic, method='GET', url_append=epic)
+        url = epic
+        custom = False
+        if custom:
+            get_res = ['?resolution=', 'SECOND']
+            get_from = ['&from=', '2022-07-07T08:00:00']
+            get_end = ['&to=', '2022-07-07T08:01:00']
+            get_pagesize = ['&pageSize=', '0']
+            url += "".join(get_res)
+            url += "".join(get_from)
+            url += "".join(get_end)
+            url += "".join(get_pagesize)
+        # print(url)
+        rsp = self.__request(Prices.epic, method='GET', url_append=url)
 
         rsp_json = rsp.json()
         pprint(rsp_json)
@@ -109,6 +121,7 @@ class IgApi:
 
         body = rsp.json()
         pprint(body)
+
         print()
         id = ""
 
@@ -451,6 +464,7 @@ class IgApi:
 
         pkg = base[method]
         url = self.__get_rest_url(base['path'] + url_append)
+
         headers = self.__get_headers(version=pkg['version'], tokens=pkg['tokens'])
 
         if base and base == Positions.trade and method == 'DELETE':
@@ -462,8 +476,11 @@ class IgApi:
         # print(method)
         # print(url)
         # print(headers)
-        rsp = requests.request(method, url, headers=headers, json=body)
 
+        if body:
+            rsp = requests.request(method, url, headers=headers, json=body)
+        else:
+            rsp = requests.request(method, url, headers=headers)
         if 'code' in pkg:
             exp_rsp_code = pkg['code']
         else:
