@@ -11,6 +11,7 @@ from base_url import BaseUrl
 from login import Login
 from prices import Prices
 from watchlists import Watchlists
+from positions import Positions
 
 
 class IgApi:
@@ -53,7 +54,19 @@ class IgApi:
         print("--- Get prices ---")
         print(f"Get prices for\t\t\t{epic}")
 
-        rsp = self.__request(Prices.epic, method='GET', url_append=epic)
+        url = epic
+        custom = False
+        if custom:
+            get_res = ['?resolution=', 'SECOND']
+            get_from = ['&from=', '2022-07-07T08:00:00']
+            get_end = ['&to=', '2022-07-07T08:01:00']
+            get_pagesize = ['&pageSize=', '0']
+            url += "".join(get_res)
+            url += "".join(get_from)
+            url += "".join(get_end)
+            url += "".join(get_pagesize)
+        # print(url)
+        rsp = self.__request(Prices.epic, method='GET', url_append=url)
 
         rsp_json = rsp.json()
         pprint(rsp_json)
@@ -108,6 +121,7 @@ class IgApi:
 
         body = rsp.json()
         pprint(body)
+
         print()
         id = ""
 
@@ -224,7 +238,81 @@ class IgApi:
         control_response = requests.request("POST", control_url, data=query)
         if control_response.status_code != 200:
             print("error", control_response.status_code, control_url, control_response.text)
-            sys.exit(0)
+            sys.exit(1)
+
+    def positions(self, model, deal_id=''):
+        if model == 'get' and not deal_id:
+            print("Get all open deals")
+            rsp = self.__request(Positions.base, method='GET')
+
+            rsp_json = rsp.json()
+            #pprint(rsp_json)
+
+            return rsp_json
+        elif model == 'get' and deal_id:
+            print(f"Get open deal for {deal_id}")
+            rsp = self.__request(Positions.base, method='GET', url_append=deal_id)
+            rsp_json = rsp.json()
+            pprint(rsp_json)
+
+            return rsp_json
+
+        else:
+            print(f"Error: model not supported: {model}")
+
+    def position_close(self, deal_id, direction, size_trade=1):
+        print(f"Close deal for {deal_id}")
+        body = dict()
+        body["dealId"] = deal_id
+        body["direction"] = direction
+        body["epic"] = None
+        body["expiry"] = None
+        body["level"] = None
+        body["orderType"] = 'MARKET'
+        body['quoteId'] = None
+        body["size"] = size_trade
+        body['timeInForce'] = 'EXECUTE_AND_ELIMINATE'
+        print(body)
+        rsp = self.__request(Positions.trade, method='DELETE', body=body)
+        rsp_json = rsp.json()
+        pprint(rsp_json)
+
+        return rsp_json["dealReference"]
+
+    def position_open(self, direction='', market='CS.D.ETHUSD.CFD.IP', size_trade=1, stop=40, limit=40):
+        print(f"Open position")
+        print(direction, market, size_trade, stop, limit)
+        ref = direction
+        if market == 'CS.D.ETHUSD.CFD.IP':
+            currency = 'USD'
+        else:
+            currency = 'SEK'
+
+        body = dict()
+        body["dealReference"] = ref
+        body["currencyCode"] = currency
+        body["direction"] = direction
+        body["epic"] = market
+        body["expiry"] = '-'
+        body["forceOpen"] = True
+        body["guaranteedStop"] = False
+        body["level"] = None
+        body["limitDistance"] = limit
+        body["limitLevel"] = None
+        body["orderType"] = 'MARKET'
+        body["size"] = size_trade
+        body["stopDistance"] = stop
+        body["stopLevel"] = None
+        body["trailingStop"] = None
+        body["trailingStopIncrement"] = None
+        body["timeInForce"] = 'EXECUTE_AND_ELIMINATE'
+
+        rsp = self.__request(Positions.trade, method='POST', body=body)
+        #print(rsp)
+        rsp_json = rsp.json()
+        pprint(rsp_json)
+
+        return ref
 
     def __validate_stream_rsp(self, rsp):
         """
@@ -376,10 +464,23 @@ class IgApi:
 
         pkg = base[method]
         url = self.__get_rest_url(base['path'] + url_append)
+
         headers = self.__get_headers(version=pkg['version'], tokens=pkg['tokens'])
 
-        rsp = requests.request(method, url, headers=headers, json=body)
+        if base and base == Positions.trade and method == 'DELETE':
+            # https://labs.ig.com/node/36
+            # print("CHANGING HEADERS")
+            method = 'POST'
+            headers['_method'] = 'DELETE'
 
+        # print(method)
+        # print(url)
+        # print(headers)
+
+        if body:
+            rsp = requests.request(method, url, headers=headers, json=body)
+        else:
+            rsp = requests.request(method, url, headers=headers)
         if 'code' in pkg:
             exp_rsp_code = pkg['code']
         else:
@@ -394,7 +495,7 @@ class IgApi:
     @staticmethod
     def __request_stream(method="", url="", data={}, code=-1):
 
-        rsp = requests.request(method, url, data=data, stream=True)
+        rsp = requests.request(method, url, data=data, stream=True, timeout=15)
 
         if rsp.status_code != code:
             print(f"Error: request failed with code: {rsp.status_code}:{rsp.text}")
