@@ -12,6 +12,7 @@ from login import Login
 from prices import Prices
 from watchlists import Watchlists
 from positions import Positions
+from client_sentiment import Sentiment
 
 
 class IgApi:
@@ -55,23 +56,52 @@ class IgApi:
         print(f"Get prices for\t\t\t{epic}")
 
         url = epic
-        custom = False
+        custom = True
         if custom:
             get_res = ['?resolution=', 'SECOND']
-            get_from = ['&from=', '2022-07-07T08:00:00']
-            get_end = ['&to=', '2022-07-07T08:01:00']
-            get_pagesize = ['&pageSize=', '0']
+            get_from = ['&from=', '2022-10-20T09:00:00']
+            get_end = ['&to=', '2022-10-20T09:59:59']
+            get_max = ['&max=', str(60*60)]
+            #get_pagesize = ['&pageSize=', '0']
             url += "".join(get_res)
             url += "".join(get_from)
             url += "".join(get_end)
-            url += "".join(get_pagesize)
-        # print(url)
+            url += "".join(get_max)
+            #url += "".join(get_pagesize)
+        #input(url)
         rsp = self.__request(Prices.epic, method='GET', url_append=url)
 
         rsp_json = rsp.json()
         pprint(rsp_json)
 
         return rsp_json
+
+    def get_market_id_from_epic(self, epic):
+        """
+        Gets the id of a specific market using epic
+        :param epic: (str) IG Market instrument
+        :return: (json) prices
+        """
+
+        print("--- Get market id ---")
+        print(f"Getting id of\t\t\t{epic}")
+
+        url = epic
+        rsp = self.__request(Prices.market_details, method='GET', url_append=url)
+
+        rsp_json = rsp.json()
+
+        try:
+            return rsp_json['instrument']['marketId']
+        except KeyError as e:
+            print("Error: Market ID not found in response")
+            print(rsp_json)
+            print(e)
+            sys.exit(1)
+        except Exception as e:
+            print("Error: unknown")
+            print(e)
+            sys.exit(1)
 
     @staticmethod
     def get_market_epic_from_watchlist(watchlist, market_string):
@@ -93,6 +123,15 @@ class IgApi:
             sys.exit(1)
 
         return epic
+
+    def get_client_sentiment(self, id):
+        print("--- Get Client Sentiment ---")
+        print(f"id\t\t\t\t{id}")
+
+        rsp = self.__request(Sentiment.base, method='GET', url_append=id)
+        body = rsp.json()
+
+        return body
 
     def watchlists_id(self, id):
         """
@@ -275,6 +314,7 @@ class IgApi:
         print(body)
         rsp = self.__request(Positions.trade, method='DELETE', body=body)
         rsp_json = rsp.json()
+        print(f"Status: {rsp.status_code}")
         pprint(rsp_json)
 
         return rsp_json["dealReference"]
@@ -309,6 +349,8 @@ class IgApi:
 
         rsp = self.__request(Positions.trade, method='POST', body=body)
         #print(rsp)
+        print(f"Status: {rsp.status_code}")
+
         rsp_json = rsp.json()
         pprint(rsp_json)
 
@@ -381,7 +423,7 @@ class IgApi:
         elif self.account == 'live':
             rest_url = self.url.protocol + self.url.base + url_append
         else:
-            print(f"Error: account type not supported: {account}")
+            print(f"Error: account type not supported: {self.account}")
             sys.exit(1)
 
         return rest_url
@@ -464,7 +506,7 @@ class IgApi:
 
         pkg = base[method]
         url = self.__get_rest_url(base['path'] + url_append)
-
+        print(url)
         headers = self.__get_headers(version=pkg['version'], tokens=pkg['tokens'])
 
         if base and base == Positions.trade and method == 'DELETE':

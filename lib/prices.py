@@ -14,3 +14,19 @@ class Prices:
             'tokens': True,
         }
     }
+
+    hist = {
+        'path': 'prices/',
+        'GET': {
+            'version': '1',
+            'tokens': True,
+        }
+    }
+
+    market_details = {
+        'path': 'markets/',
+        'GET': {
+            'version': '4',
+            'tokens': True,
+        }
+    }
